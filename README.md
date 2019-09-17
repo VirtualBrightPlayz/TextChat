@@ -15,7 +15,7 @@ Adds text-based chat into SCP:SL via the player console.
 Config option | Config Type | Default Value | Description
 :---: | :---: | :---: | :------
 tc_blacklisted_words | String List(array) | Empty | A list of words which will prevent a user from sending a message. This matches based on if the message contains the word in any way, IE: "hello" contains "hell".
-tc_(teamA)_cansee_(teamB) | Bool | true | Whether or not (teamA) can see messages from (teamB). Valid teams are listed below.
+tc_teamA_cansee_teamB | Bool | true | Whether or not (teamA) can see messages from (teamB). Valid teams are listed below.
 tc_blocked_path | String | {The directory the SCPSL executable is in}/TextChat/blocked.txt | Where to hold the persistant list of sbloced users.
 tc_local_mute_path | String | {The directory the SCPSL executable is in}/TextChat/muted.txt | The location to save persistant local player mutes.
 tc_area_chat | Bool | false | Whether or not messages should be checked by distance to determine who sees them. (THIS DOES NOT OVERWRITE THE TEAM SETTINGS ABOVE)
