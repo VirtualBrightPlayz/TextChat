@@ -25,11 +25,13 @@ tc_admin_badges | String List(array) | Empty | If badge names are supplied here,
 tc_cooldown_time | Float | 1.5f | The cooldown time incured on a player between being able to send messages. (to prevent spam)
 
 ### Teams
-ci = Chaos Insurgency / Class-D
-mtf = Cadets, Lieutenants, Commanders, Guards and Nerds
-scp = Anomalies
-tut = Tutorials
-spec = Spectators
+  Name | | | Who is in that team
+:---: | :---: | :---: | :------
+ci | | | Chaos Insurgency / Class-D
+mtf | | | Cadets, Lieutenants, Commanders, Guards and Nerds
+scp | | | Anomalies
+tut | | | Tutorials
+spec | | | Spectators
 
 
 ### RA Commands
