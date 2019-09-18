@@ -23,6 +23,7 @@ tc_area_size | Float | 60f | The range of area-based messages, if enabled.
 tc_admin_bypass | Bool | true | Whether or not staff should bypass all team and range checks for messages. Blocks and local mutes still apply.
 tc_admin_badges | String List(array) | Empty | If badge names are supplied here, only those badges will recieve admin_bypass, instead of all those with RA access.
 tc_cooldown_time | Float | 1.5f | The cooldown time incured on a player between being able to send messages. (to prevent spam)
+tc_intercom_send_all | Bool | true | Allows a user to use the intercom for a single server-wide message. Does not bypass intercom cooldown, requires they be in normal activation range of the Intercom to use.
 
 ### Teams
   Name | | | Who is in that team
@@ -37,9 +38,9 @@ spec | | | Spectators
 ### RA Commands
   Command |  |  | Description
 :---: | :---: | :---: | :------
-**Aliases** | **tchat** | 
-tchat block | PlayerID | Round Count (use -1 for permanent) | Blocks the indicated user for the specified number of rounds.
-tchat unblock | PlayerID | ~~ | Unblocs the user.
+**Aliases** | **chat** | 
+chat block | PlayerID | Round Count (use -1 for permanent) | Blocks the indicated user for the specified number of rounds.
+chat unblock | PlayerID | ~~ | Unblocs the user.
 
 ### Console Commands
   Command | | | Description
