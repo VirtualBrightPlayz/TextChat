@@ -5,6 +5,7 @@ using MEC;
 using Smod2;
 using Smod2.Attributes;
 using Smod2.Config;
+using UnityEngine;
 
 namespace TextChat
 {
@@ -13,7 +14,7 @@ namespace TextChat
 		id = "joker119.textchat",
 		configPrefix = "tc",
 		name = "TextChat",
-		version = "1.0.0",
+		version = "1.0.3",
 		SmodMajor = 3,
 		SmodMinor = 5,
 		SmodRevision = 1)]
@@ -25,6 +26,7 @@ namespace TextChat
 		public Dictionary<string, int> Blocked = new Dictionary<string, int>();
 		public Dictionary<string, List<string>> LocalMuted = new Dictionary<string, List<string>>();
 		public List<CoroutineHandle> Coroutines = new List<CoroutineHandle>();
+		public Transform IntercomArea = null;
 
 		[ConfigOption] public string[] BlacklistedWords = new string[] { };
 		[ConfigOption] public bool TutCanseeScp = true;
@@ -55,11 +57,12 @@ namespace TextChat
 		[ConfigOption] public string[] AdminBadges = new string[] {};
 		[ConfigOption] public float CooldownTime = 1.5f;
 		[ConfigOption] public bool UseRadioRange = false;
-		[ConfigOption] public bool IntercomSendAll = false;
+		[ConfigOption] public bool IntercomSendAll = true;
 		
 
 		public override void Register()
 		{
+			Info($"BlockedPath: {BlockedPath}\nLocalPath: {LocalMutePath}");
 			AddEventHandlers(new EventHandlers(this));
 			AddCommands(new []{"chat"}, new Commands(this));
 			Functions = new Methods(this);

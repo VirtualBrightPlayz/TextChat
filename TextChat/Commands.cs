@@ -10,18 +10,18 @@ namespace TextChat
 		
 		public string[] OnCall(ICommandSender sender, string[] args)
 		{
-			if (args.Length < 3)
+			if (args.Length < 2)
 				return new[] {GetUsage()};
-			switch (args[1].ToLower())
+			switch (args[0].ToLower())
 			{
 				case "block":
 				{
-					if (args.Length < 4)
+					if (args.Length < 3)
 						return new[]
 							{"You must supply a player name or ID and a number of rounds. use -1 for permanent."};
-					if (!int.TryParse(args[3], out int id))
+					if (!int.TryParse(args[1], out int id))
 						return new[] {"Invalid PlayerID specified."};
-					if (!int.TryParse(args[4], out int count))
+					if (!int.TryParse(args[2], out int count))
 						return new[] {"Invalid round count argument, must be a number!"};
 
 					Player target = plugin.Server.GetPlayer(id);
@@ -30,7 +30,7 @@ namespace TextChat
 				}
 				case "unblock":
 				{
-					if (!int.TryParse(args[3], out int id))
+					if (!int.TryParse(args[1], out int id))
 						return new[] {"Invalid PlayerID specified."};
 
 					Player target = plugin.Server.GetPlayer(id);
@@ -42,12 +42,10 @@ namespace TextChat
 			return new[] {GetUsage()};
 		}
 
-		public string GetUsage()
-		{
-			return "TextChat Commands\n" +
-				   "tchat block (PlayerID) (number of rounds) - Blocks the user from sending chat messages for (number) amount of rounds. Use -1 to block permanently.\n" +
-				   "tchat unblock (PlayerID) - Unblocks the user regardless of how many rounds are remaining in their counter.";
-		}
+		public string GetUsage() =>
+			"TextChat Commands\n" +
+			"tchat block (PlayerID) (number of rounds) - Blocks the user from sending chat messages for (number) amount of rounds. Use -1 to block permanently.\n" +
+			"tchat unblock (PlayerID) - Unblocks the user regardless of how many rounds are remaining in their counter.";
 
 		public string GetCommandDescription()
 		{

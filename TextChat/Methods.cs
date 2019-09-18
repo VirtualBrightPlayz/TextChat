@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using MEC;
+using Smod2;
 using Smod2.API;
 using UnityEngine;
 
@@ -56,11 +58,23 @@ namespace TextChat
 
 		//TODO: public bool RadioRangeCheck(Player target, Player source)
 
-		public static bool CheckIntercomRange(Player source) =>
-			Vector3.Distance(Intercom.host.transform.position, source.GameObject().transform.position) <=
-			Intercom.host.triggerDistance;
+		public bool CheckIntercomRange(Player source) => Vector3.Distance(intercomArea.position, source.GameObject().transform.position) <= Intercom.host.triggerDistance;
 
-		public static void SetIntercomSpeaker(Player source) => Intercom.host.Networkspeaker = source.GameObject();
+		private Transform intercomArea
+		{
+			get
+			{
+				if (plugin.IntercomArea == null)
+					plugin.IntercomArea = typeof(Intercom).GetField("area", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(Intercom.host) as Transform;
+
+				if (plugin.IntercomArea == null) 
+					throw new MissingFieldException("Field for intercom not found.");
+
+				return plugin.IntercomArea;
+			}
+		}
+
+		public static void SetIntercomSpeaker(Player source) => Intercom.host.RequestTransmission(source.GameObject());
 
 		public static bool IntercomOverride(Player source) => Intercom.host.speaker == source.GameObject();
 

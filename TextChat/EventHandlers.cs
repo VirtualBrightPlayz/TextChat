@@ -9,32 +9,42 @@ using Smod2.Events;
 
 namespace TextChat
 {
-	public class EventHandlers : IEventHandlerWaitingForPlayers, IEventHandlerRoundStart, IEventHandlerRoundEnd, IEventHandlerCallCommand, IEventHandlerPlayerJoin
+	public class EventHandlers : IEventHandlerWaitingForPlayers, IEventHandlerRoundStart, IEventHandlerRoundEnd, IEventHandlerCallCommand, IEventHandlerPlayerJoin, IEventHandlerCheckRoundEnd
 	{
 		private readonly TextChat plugin;
 		public EventHandlers(TextChat plugin) => this.plugin = plugin;
 		public void OnWaitingForPlayers(WaitingForPlayersEvent ev)
 		{
-			//Ensure directory exists
-			if (!Directory.Exists(plugin.BlockedPath.Replace("/blocked.txt", "")))
+			try
 			{
-				plugin.Info("TextChat directory missing, creating..");
-				Directory.CreateDirectory(plugin.BlockedPath.Replace("/blocked.txt", ""));
+				//Ensure directory exists
+				if (!Directory.Exists(plugin.BlockedPath.Replace("/blocked.txt", "")))
+				{
+					plugin.Info("TextChat directory missing, creating..");
+					Directory.CreateDirectory(plugin.BlockedPath.Replace("/blocked.txt", ""));
+				}
+
+				//Ensure files exist
+				if (!File.Exists(plugin.BlockedPath))
+				{
+					plugin.Info("Blocked users file not found, creating..");
+					File.Create(plugin.BlockedPath);
+				}
+
+				if (!File.Exists(plugin.LocalMutePath))
+				{
+					plugin.Info("Muted users file not found, creating..");
+					File.Create(plugin.LocalMutePath);
+				}
 			}
-			//Ensure files exist
-			if (!File.Exists(plugin.BlockedPath))
+			catch (Exception)
 			{
-				plugin.Info("Blocked users file not found, creating..");
-				File.Create(plugin.BlockedPath);
+				// ignored
 			}
 
-			if (!File.Exists(plugin.LocalMutePath))
-			{
-				plugin.Info("Muted users file not found, creating..");
-				File.Create(plugin.LocalMutePath);
-			}
-			
 			plugin.Cooldown.Clear();
+			plugin.Blocked.Clear();
+			plugin.LocalMuted.Clear();
 
 			//Setup blocked user parsing
 			string[] blockedReadArray = File.ReadAllLines(plugin.BlockedPath);
@@ -73,32 +83,29 @@ namespace TextChat
 
 		public void OnRoundEnd(RoundEndEvent ev)
 		{
-
+			plugin.IntercomArea = null;
 			foreach (CoroutineHandle handle in plugin.Coroutines)
 				Timing.KillCoroutines(handle);
 			
-			string[] blockedWriteArray = {};
-			foreach (string blocked in plugin.Blocked.Keys.Where(blocked => plugin.Blocked[blocked] != 0))
-				blockedWriteArray.Append($"{blocked}:{plugin.Blocked[blocked]}");
+			List<string>blockedWritelist = plugin.Blocked.Keys.Where(blocked => plugin.Blocked[blocked] != 0).Select(blocked => $"{blocked}:{plugin.Blocked[blocked]}").ToList();
+			File.WriteAllLines(plugin.BlockedPath, blockedWritelist);
 			
-			File.WriteAllLines(plugin.BlockedPath, blockedWriteArray);
-
-			string[] mutedWriteArray = { };
+			List<string> mutedWriteList = new List<string>();
 			foreach (string key in plugin.LocalMuted.Keys)
 			{
 				string muted = plugin.LocalMuted[key].Aggregate("", (current, s) => current + $"{s}.");
-				mutedWriteArray.Append($"{key}:{muted}");
+				mutedWriteList.Add($"{key}:{muted}");
 			}
-
-			File.WriteAllLines(plugin.LocalMutePath, mutedWriteArray);
+			
+			File.WriteAllLines(plugin.LocalMutePath, mutedWriteList);
 		}
 
 		public void OnCallCommand(PlayerCallCommandEvent ev)
 		{
-			if (!ev.Command.StartsWith(".chat") || !ev.Command.StartsWith(".mute") || !ev.Command.StartsWith(".unmute"))
+			if (!ev.Command.StartsWith("chat") && !ev.Command.StartsWith("mute") && !ev.Command.StartsWith("unmute")) 
 				return;
 
-			if (ev.Command.StartsWith(".mute"))
+			if (ev.Command.StartsWith("mute"))
 			{
 				string[] args = ev.Command.Split(new[] {" "}, StringSplitOptions.None);
 				if (args.Length < 2)
@@ -123,9 +130,10 @@ namespace TextChat
 				
 				plugin.LocalMuted[ev.Player.SteamId].Add(player.SteamId);
 				ev.ReturnMessage = $"{player.Name} has been muted. You will no longer see messages from this person.";
+				return;
 			}
 			
-			if (ev.Command.StartsWith(".unmute"))
+			if (ev.Command.StartsWith("unmute"))
 			{
 				string[] args = ev.Command.Split(new[] {" "}, StringSplitOptions.None);
 				if (args.Length < 2)
@@ -150,6 +158,7 @@ namespace TextChat
 				
 				plugin.LocalMuted[ev.Player.SteamId].Remove(player.SteamId);
 				ev.ReturnMessage = $"{player.Name} has been unmuted. You will now see messages from this person.";
+				return;
 			}
 
 			if (!Methods.IntercomOverride(ev.Player))
@@ -164,10 +173,11 @@ namespace TextChat
 				if (!plugin.Functions.CanSend(ev.Player))
 				{
 					ev.ReturnMessage = "You cannot send messages because you have been muted by staff.";
+					plugin.Server.Map.SetIntercomSpeaker(ev.Player);
 					return;
 				}
-				
-				if (Methods.CheckIntercomRange(ev.Player) && !Intercom.host.speaking && plugin.IntercomSendAll)
+
+				if (plugin.Functions.CheckIntercomRange(ev.Player) && !Intercom.host.speaking && plugin.IntercomSendAll) 
 					Methods.SetIntercomSpeaker(ev.Player);
 			}
 
@@ -181,9 +191,9 @@ namespace TextChat
 				if (!plugin.LocalMuted[player.SteamId].Contains(ev.Player.SteamId))
 					if (plugin.Functions.CanSee(player, ev.Player))
 						if (plugin.AreaChat && plugin.Functions.InRange(player, ev.Player))
-							plugin.Functions.SendMessage(ev.Player, player, ev.Command.Replace(".chat",""));
+							plugin.Functions.SendMessage(ev.Player, player, ev.Command.Replace("chat ",""));
 						else if (!plugin.AreaChat)
-							plugin.Functions.SendMessage(ev.Player, player, ev.Command.Replace(".chat",""));
+							plugin.Functions.SendMessage(ev.Player, player, ev.Command.Replace("chat ",""));
 			
 			plugin.Cooldown.Add(ev.Player.PlayerId);
 			plugin.Coroutines.Add(Timing.RunCoroutine(plugin.Functions.RemoveCooldown(ev.Player)));
@@ -194,6 +204,11 @@ namespace TextChat
 		{
 			if (!plugin.LocalMuted.ContainsKey(ev.Player.SteamId))
 				plugin.LocalMuted.Add(ev.Player.SteamId, new List<string>());
+		}
+
+		public void OnCheckRoundEnd(CheckRoundEndEvent ev)
+		{
+			ev.Status = ROUND_END_STATUS.ON_GOING;
 		}
 	}
 }
