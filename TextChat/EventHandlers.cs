@@ -94,6 +94,8 @@ namespace TextChat
 			foreach (string key in plugin.LocalMuted.Keys)
 			{
 				string muted = plugin.LocalMuted[key].Aggregate("", (current, s) => current + $"{s}.");
+				if (muted == ".")
+					continue;
 				mutedWriteList.Add($"{key}:{muted}");
 			}
 			

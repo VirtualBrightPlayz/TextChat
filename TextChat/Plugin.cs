@@ -14,7 +14,7 @@ namespace TextChat
 		id = "joker119.textchat",
 		configPrefix = "tc",
 		name = "TextChat",
-		version = "1.0.3",
+		version = "1.0.4",
 		SmodMajor = 3,
 		SmodMinor = 5,
 		SmodRevision = 1)]
