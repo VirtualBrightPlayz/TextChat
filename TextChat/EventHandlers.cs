@@ -9,7 +9,7 @@ using Smod2.Events;
 
 namespace TextChat
 {
-	public class EventHandlers : IEventHandlerWaitingForPlayers, IEventHandlerRoundStart, IEventHandlerRoundEnd, IEventHandlerCallCommand, IEventHandlerPlayerJoin, IEventHandlerCheckRoundEnd
+	public class EventHandlers : IEventHandlerWaitingForPlayers, IEventHandlerRoundStart, IEventHandlerRoundEnd, IEventHandlerCallCommand, IEventHandlerPlayerJoin
 	{
 		private readonly TextChat plugin;
 		public EventHandlers(TextChat plugin) => this.plugin = plugin;
@@ -206,11 +206,6 @@ namespace TextChat
 		{
 			if (!plugin.LocalMuted.ContainsKey(ev.Player.SteamId))
 				plugin.LocalMuted.Add(ev.Player.SteamId, new List<string>());
-		}
-
-		public void OnCheckRoundEnd(CheckRoundEndEvent ev)
-		{
-			ev.Status = ROUND_END_STATUS.ON_GOING;
 		}
 	}
 }
