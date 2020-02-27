@@ -21,6 +21,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -37,6 +38,18 @@
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\References\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp_publicized">
+      <HintPath>..\..\..\..\source\repos\Killers0992\EXILED\References\Assembly-CSharp_publicized.dll</HintPath>
+    </Reference>
+    <Reference Include="EXILED">
+      <HintPath>..\..\..\..\Desktop\Resources\EXILED.dll</HintPath>
+    </Reference>
+    <Reference Include="EXILED_Events">
+      <HintPath>..\..\..\..\Desktop\Resources\EXILED_Events.dll</HintPath>
+    </Reference>
+    <Reference Include="Mirror">
+      <HintPath>..\..\..\..\Desktop\Resources\Mirror.dll</HintPath>
     </Reference>
     <Reference Include="Smod2, Version=3.5.1.5, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\References\Smod2.dll</HintPath>
@@ -58,7 +71,6 @@
   <ItemGroup>
     <Compile Include="Commands.cs" />
     <Compile Include="EventHandlers.cs" />
-    <Compile Include="Extensions.cs" />
     <Compile Include="Methods.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

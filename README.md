@@ -28,19 +28,19 @@ tc_intercom_send_all | Bool | true | Allows a user to use the intercom for a sin
 ### Teams
   Name | | | Who is in that team
 :---: | :---: | :---: | :------
-ci | | | Chaos Insurgency / Class-D
+chi | | | Chaos Insurgency / Class-D
 mtf | | | Cadets, Lieutenants, Commanders, Guards and Nerds
 scp | | | Anomalies
 tut | | | Tutorials
-spec | | | Spectators
+rip | | | Spectators
 
 
 ### RA Commands
   Command |  |  | Description
 :---: | :---: | :---: | :------
 **Aliases** | **chat** | 
-chat block | PlayerID | Round Count (use -1 for permanent) | Blocks the indicated user for the specified number of rounds.
-chat unblock | PlayerID | ~~ | Unblocs the user.
+block | PlayerID | Round Count (use -1 for permanent) | Blocks the indicated user for the specified number of rounds.
+unblock | PlayerID | ~~ | Unblocs the user.
 
 ### Console Commands
   Command | | | Description

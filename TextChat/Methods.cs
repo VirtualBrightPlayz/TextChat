@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using MEC;
-using Smod2;
-using Smod2.API;
 using UnityEngine;
 
 namespace TextChat
@@ -33,32 +31,36 @@ namespace TextChat
 			return $"User blocked {duration}.";
 		}
 
-		private bool HasAdminBypass(Player player) => plugin.AdminBadges.Length == 0
-			? ((GameObject) player.GetGameObject()).GetComponent<ServerRoles>().RemoteAdmin
-			: plugin.AdminBadges.Any(s => player.GetUserGroup().Name == s);
-
-		public void SendMessage(Player source, Player target, string message)
+		private bool HasAdminBypass(ReferenceHub player)
 		{
-			target.SendConsoleMessage($"[{DateTime.Now}] {source.Name}: {message}");
+			string groupName = ServerStatic.GetPermissionsHandler().GetUserGroup(player.characterClassManager.UserId) != null ? ServerStatic.GetPermissionsHandler()._groups.FirstOrDefault(g => g.Value == player.serverRoles.Group).Key : "";
+			return TextChat.Config.GetStringList("tc_admin_badges").Count == 0
+					? player.serverRoles.RemoteAdmin
+					: TextChat.Config.GetStringList("tc_admin_badges").Any(s => groupName == s);
 		}
 
-		public bool CanSend(Player source) => !plugin.Blocked.ContainsKey(source.SteamId) || plugin.Cooldown.Contains(source.PlayerId);
-		public bool BlacklistCheck(string message) => plugin.BlacklistedWords.Any(message.Contains);
-
-		public IEnumerator<float> RemoveCooldown(Player player)
+		public void SendMessage(ReferenceHub source, ReferenceHub target, string message)
 		{
-			yield return Timing.WaitForSeconds(plugin.CooldownTime);
-
-			plugin.Cooldown.Remove(player.PlayerId);
+			target.characterClassManager.TargetConsolePrint(target.characterClassManager.connectionToClient, $"[{DateTime.Now}] {source.nicknameSync.MyNick}: {message}", "green");
 		}
 
-		public bool InRange(Player target, Player source) =>
-			Vector.Distance(target.GetPosition(), source.GetPosition()) < plugin.AreaSize ||
-			(source.TeamRole.Team == Smod2.API.Team.SCP && target.TeamRole.Team == Smod2.API.Team.SCP);
+		public bool CanSend(ReferenceHub source) => !plugin.Blocked.ContainsKey(source.characterClassManager.UserId) || plugin.Cooldown.Contains(source.queryProcessor.PlayerId);
+		public bool BlacklistCheck(string message) => TextChat.Config.GetStringList("tc_blacklisted_words").Any(message.Contains);
+
+		public IEnumerator<float> RemoveCooldown(ReferenceHub player)
+		{
+			yield return Timing.WaitForSeconds(TextChat.Config.GetFloat("tc_cooldown_time", 1.5f));
+
+			plugin.Cooldown.Remove(player.queryProcessor.PlayerId);
+		}
+
+		public bool InRange(ReferenceHub target, ReferenceHub source) =>
+			Vector3.Distance(target.transform.position, source.transform.position) < TextChat.Config.GetFloat("tc_area_size", 60f) ||
+			(source.characterClassManager.Classes.SafeGet(source.characterClassManager.CurClass).team == Team.SCP && target.characterClassManager.Classes.SafeGet(target.characterClassManager.CurClass).team == Team.SCP);
 
 		//TODO: public bool RadioRangeCheck(Player target, Player source)
 
-		public bool CheckIntercomRange(Player source) => Vector3.Distance(intercomArea.position, source.GameObject().transform.position) <= Intercom.host.triggerDistance;
+		public bool CheckIntercomRange(ReferenceHub source) => Vector3.Distance(intercomArea.position, source.transform.position) <= Intercom.host.triggerDistance;
 
 		private Transform intercomArea
 		{
@@ -74,99 +76,100 @@ namespace TextChat
 			}
 		}
 
-		public static void SetIntercomSpeaker(Player source) => Intercom.host.RequestTransmission(source.GameObject());
+		public static void SetIntercomSpeaker(ReferenceHub source) => Intercom.host.RequestTransmission(source.gameObject);
 
-		public static bool IntercomOverride(Player source) => Intercom.host.speaker == source.GameObject();
+		public static bool IntercomOverride(ReferenceHub source) => Intercom.host.speaker == source.gameObject;
 
-		public bool CanSee(Player target, Player source)
+		public bool CanSee(ReferenceHub target, ReferenceHub source)
 		{
+			Team targetTeam = target.characterClassManager.Classes.SafeGet(target.characterClassManager.CurClass).team;
+			Team sourceTeam = source.characterClassManager.Classes.SafeGet(source.characterClassManager.CurClass).team;
 			if (IntercomOverride(source))
 				return true;
-			if (plugin.AdminBypass && HasAdminBypass(target))
+			if (TextChat.Config.GetBool("tc_admin_bypass", true) && HasAdminBypass(target))
 				return true;
 
-			if (source.TeamRole.Team == target.TeamRole.Team)
+			if (sourceTeam == targetTeam)
 				return true;
 
-			Smod2.API.Team tarTeam = target.TeamRole.Team;
 			
-			switch (source.TeamRole.Team)
+			switch (sourceTeam)
 			{
-				case Smod2.API.Team.SCP:
-				{
-					switch (tarTeam)
+				case Team.SCP:
 					{
-						case Smod2.API.Team.NINETAILFOX when plugin.MtfCanseeScp:
-						case Smod2.API.Team.SCIENTIST when plugin.MtfCanseeScp:
-						case Smod2.API.Team.SPECTATOR when plugin.SpecCanseeScp: 
-						case Smod2.API.Team.CHAOS_INSURGENCY when plugin.CiCanseeScp:    
-						case Smod2.API.Team.CLASSD when plugin.CiCanseeScp:
-						case Smod2.API.Team.TUTORIAL when plugin.TutCanseeScp:
-							return true;
-						default:
-							return false;
+						switch (targetTeam)
+						{
+							case Team.MTF when TextChat.Config.GetBool("tc_mtf_cansee_scp", true):
+							case Team.RSC when TextChat.Config.GetBool("tc_mtf_cansee_scp", true):
+							case Team.RIP when TextChat.Config.GetBool("tc_rip_cansee_scp", true):
+							case Team.CHI when TextChat.Config.GetBool("tc_chi_cansee_scp", true):
+							case Team.CDP when TextChat.Config.GetBool("tc_chi_cansee_scp", true):
+							case Team.TUT when TextChat.Config.GetBool("tc_tut_cansee_scp", true):
+								return true;
+							default:
+								return false;
+						}
 					}
-				}
-				case Smod2.API.Team.CLASSD:
-				case Smod2.API.Team.CHAOS_INSURGENCY:
-				{
-					switch (tarTeam)
+				case Team.CDP:
+				case Team.CHI:
 					{
-						case Smod2.API.Team.SCP when plugin.ScpCanseeCi:
-						case Smod2.API.Team.NINETAILFOX when plugin.MtfCanseeCi:
-						case Smod2.API.Team.SCIENTIST when plugin.MtfCanseeCi:
-						case Smod2.API.Team.SPECTATOR when plugin.SpecCanseeCi:
-						case Smod2.API.Team.TUTORIAL when plugin.TutCanseeCi:
-							return true;
-						default:
-							return false;
+						switch (targetTeam)
+						{
+							case Team.SCP when TextChat.Config.GetBool("tc_scp_cansee_chi", true):
+							case Team.MTF when TextChat.Config.GetBool("tc_mtf_cansee_chi", true):
+							case Team.RSC when TextChat.Config.GetBool("tc_mtf_cansee_chi", true):
+							case Team.RIP when TextChat.Config.GetBool("tc_rip_cansee_chi", true):
+							case Team.TUT when TextChat.Config.GetBool("tc_tut_cansee_chi", true):
+								return true;
+							default:
+								return false;
+						}
 					}
-				}
-				case Smod2.API.Team.SCIENTIST:
-				case Smod2.API.Team.NINETAILFOX:
-				{
-					switch (tarTeam)
+				case Team.RSC:
+				case Team.MTF:
 					{
-						case Smod2.API.Team.SCP when plugin.ScpCanseeMtf:
-						case Smod2.API.Team.CHAOS_INSURGENCY when plugin.CiCanseeMtf:
-						case Smod2.API.Team.CLASSD when plugin.CiCanseeMtf:
-						case Smod2.API.Team.SPECTATOR when plugin.SpecCanseeMtf:
-						case Smod2.API.Team.TUTORIAL when plugin.TutCanseeMtf:
-							return true;
-						default:
-							return false;
+						switch (targetTeam)
+						{
+							case Team.SCP when TextChat.Config.GetBool("tc_scp_cansee_mtf", true):
+							case Team.CHI when TextChat.Config.GetBool("tc_Chi_cansee_mtf", true):
+							case Team.CDP when TextChat.Config.GetBool("tc_chi_cansee_mtf", true):
+							case Team.RIP when TextChat.Config.GetBool("tc_rip_cansee_mtf", true):
+							case Team.TUT when TextChat.Config.GetBool("tc_tut_cansee_mtf", true):
+								return true;
+							default:
+								return false;
+						}
 					}
-				}
-				case Smod2.API.Team.TUTORIAL:
-				{
-					switch (tarTeam)
+				case Team.TUT:
 					{
-						case Smod2.API.Team.SCP when plugin.ScpCanseeTut:
-						case Smod2.API.Team.NINETAILFOX when plugin.MtfCanseeTut:
-						case Smod2.API.Team.CHAOS_INSURGENCY when plugin.CiCanseeTut:
-						case Smod2.API.Team.SCIENTIST when plugin.MtfCanseeTut:
-						case Smod2.API.Team.CLASSD when plugin.CiCanseeTut:
-						case Smod2.API.Team.SPECTATOR when plugin.SpecCanseeTut:
-							return true;
-						default:
-							return false;
+						switch (targetTeam)
+						{
+							case Team.SCP when TextChat.Config.GetBool("tc_scp_cansee_tut", true):
+							case Team.MTF when TextChat.Config.GetBool("tc_mtf_cansee_tut", true):
+							case Team.CHI when TextChat.Config.GetBool("tc_chi_cansee_tut", true):
+							case Team.RSC when TextChat.Config.GetBool("tc_mtf_cansee_tut", true):
+							case Team.CDP when TextChat.Config.GetBool("tc_chi_cansee_tut", true):
+							case Team.RIP when TextChat.Config.GetBool("tc_rip_cansee_tut", true):
+								return true;
+							default:
+								return false;
+						}
 					}
-				}
-				case Smod2.API.Team.SPECTATOR:
-				{
-					switch(tarTeam)
+				case Team.RIP:
 					{
-						case Smod2.API.Team.SCP when plugin.ScpCanseeSpec:
-						case Smod2.API.Team.NINETAILFOX when plugin.MtfCanseeSpec:
-						case Smod2.API.Team.CHAOS_INSURGENCY when plugin.CiCanseeSpec:
-						case Smod2.API.Team.SCIENTIST when plugin.MtfCanseeSpec:
-						case Smod2.API.Team.CLASSD when plugin.CiCanseeSpec:
-						case Smod2.API.Team.TUTORIAL when plugin.TutCanseeSpec:
-							return true;
-						default:
-							return false;
+						switch (targetTeam)
+						{
+							case Team.SCP when TextChat.Config.GetBool("tc_scp_cansee_rip", true):
+							case Team.MTF when TextChat.Config.GetBool("tc_mtf_cansee_rip", true):
+							case Team.CHI when TextChat.Config.GetBool("tc_chi_cansee_rip", true):
+							case Team.RSC when TextChat.Config.GetBool("tc_mtf_cansee_rip", true):
+							case Team.CDP when TextChat.Config.GetBool("tc_chi_cansee_rip", true):
+							case Team.TUT when TextChat.Config.GetBool("tc_tut_cansee_rip", true):
+								return true;
+							default:
+								return false;
+						}
 					}
-				}
 				default:
 					return false;
 			}
