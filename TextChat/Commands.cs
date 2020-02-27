@@ -1,55 +1,76 @@
-using Smod2.API;
-using Smod2.Commands;
+
+using EXILED;
+using EXILED.Extensions;
 
 namespace TextChat
 {
-	public class Commands : ICommandHandler
+	public class Commands
 	{
 		private readonly TextChat plugin;
 		public Commands(TextChat plugin) => this.plugin = plugin;
 		
-		public string[] OnCall(ICommandSender sender, string[] args)
+		public void RemoteAdminCommandEvent(ref RACommandEvent ev)
 		{
-			if (args.Length < 2)
-				return new[] {GetUsage()};
+			string[] args = ev.Command.Split(' ');
+			ReferenceHub sender = ev.Sender.SenderId == "SERVER CONSOLE" || ev.Sender.SenderId == "GAME CONSOLE" ? Player.GetPlayer(PlayerManager.localPlayer) : Player.GetPlayer(ev.Sender.SenderId);
 			switch (args[0].ToLower())
 			{
 				case "block":
-				{
 					if (args.Length < 3)
-						return new[]
-							{"You must supply a player name or ID and a number of rounds. use -1 for permanent."};
+					{
+						ev.Sender.RaReply("TextChat#You must supply a player name or ID and a number of rounds. use -1 for permanent.", true, true, string.Empty);
+						ev.Allow = false;
+						return;
+					}
 					if (!int.TryParse(args[1], out int id))
-						return new[] {"Invalid PlayerID specified."};
+					{
+						ev.Sender.RaReply("TextChat#Invalid PlayerID specified.", true, true, string.Empty);
+						ev.Allow = false;
+						return;
+					}
 					if (!int.TryParse(args[2], out int count))
-						return new[] {"Invalid round count argument, must be a number!"};
+					{
+						ev.Sender.RaReply("TextChat#Invalid round count argument, must be a number!", true, true, string.Empty);
+						ev.Allow = false;
+						return;
+					}
 
-					Player target = plugin.Server.GetPlayer(id);
-					
-					return target == null ? new[] {"Player not found."} : new []{plugin.Functions.AddBlockedUser(target.SteamId, count)};
-				}
+					ReferenceHub target = Player.GetPlayer(id);
+
+					if (target == null)
+					{
+						ev.Sender.RaReply("TextChat#Player not found.", true, true, string.Empty);
+						ev.Allow = false;
+						return;
+					}
+					else
+					{
+						plugin.Functions.AddBlockedUser(target.characterClassManager.UserId, count);
+						ev.Allow = false;
+						return;
+					}
 				case "unblock":
-				{
-					if (!int.TryParse(args[1], out int id))
-						return new[] {"Invalid PlayerID specified."};
+					if (!int.TryParse(args[1], out int id2))
+					{
+						ev.Sender.RaReply("TextChat#Invalid PlayerID specified.", true, true, string.Empty);
+						ev.Allow = false;
+						return;
+					}
 
-					Player target = plugin.Server.GetPlayer(id);
-					
-					return target == null ? new[] {"Player not found."} : new []{plugin.Functions.RemoveBlockedUser(target.SteamId)};
-				}
+					ReferenceHub target2 = Player.GetPlayer(id2);
+					if (target2 == null)
+					{
+						ev.Sender.RaReply("TextChat#Player not found.", true, true, string.Empty);
+						ev.Allow = false;
+						return;
+					}
+					else
+					{
+						plugin.Functions.RemoveBlockedUser(target2.characterClassManager.UserId);
+						ev.Allow = false;
+						return;
+					}
 			}
-
-			return new[] {GetUsage()};
-		}
-
-		public string GetUsage() =>
-			"TextChat Commands\n" +
-			"tchat block (PlayerID) (number of rounds) - Blocks the user from sending chat messages for (number) amount of rounds. Use -1 to block permanently.\n" +
-			"tchat unblock (PlayerID) - Unblocks the user regardless of how many rounds are remaining in their counter.";
-
-		public string GetCommandDescription()
-		{
-			return "";
 		}
 	}
 }

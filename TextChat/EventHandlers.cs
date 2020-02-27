@@ -2,39 +2,38 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using EXILED;
+using EXILED.Extensions;
 using MEC;
-using Smod2.API;
-using Smod2.EventHandlers;
-using Smod2.Events;
 
 namespace TextChat
 {
-	public class EventHandlers : IEventHandlerWaitingForPlayers, IEventHandlerRoundStart, IEventHandlerRoundEnd, IEventHandlerCallCommand, IEventHandlerPlayerJoin
+	public class EventHandlers
 	{
 		private readonly TextChat plugin;
 		public EventHandlers(TextChat plugin) => this.plugin = plugin;
-		public void OnWaitingForPlayers(WaitingForPlayersEvent ev)
+		public void OnWaitingForPlayers()
 		{
 			try
 			{
 				//Ensure directory exists
-				if (!Directory.Exists(plugin.BlockedPath.Replace("/blocked.txt", "")))
+				if (!Directory.Exists(TextChat.Config.GetString("tc_blocked_path", $"{TextChat.pluginDir}/blocked.txt").Replace("/blocked.txt", "")))
 				{
-					plugin.Info("TextChat directory missing, creating..");
-					Directory.CreateDirectory(plugin.BlockedPath.Replace("/blocked.txt", ""));
+					Log.Info("TextChat directory missing, creating..");
+					Directory.CreateDirectory(TextChat.Config.GetString("tc_blocked_path", $"{TextChat.pluginDir}/blocked.txt").Replace("/blocked.txt", ""));
 				}
 
 				//Ensure files exist
-				if (!File.Exists(plugin.BlockedPath))
+				if (!File.Exists(TextChat.Config.GetString("tc_blocked_path", $"{TextChat.pluginDir}/blocked.txt")))
 				{
-					plugin.Info("Blocked users file not found, creating..");
-					File.Create(plugin.BlockedPath);
+					Log.Info("Blocked users file not found, creating..");
+					File.Create(TextChat.Config.GetString("tc_blocked_path", $"{TextChat.pluginDir}/blocked.txt"));
 				}
 
-				if (!File.Exists(plugin.LocalMutePath))
+				if (!File.Exists(TextChat.Config.GetString("tc_local_mute_path", $"{TextChat.pluginDir}/muted.txt")))
 				{
-					plugin.Info("Muted users file not found, creating..");
-					File.Create(plugin.LocalMutePath);
+					Log.Info("Muted users file not found, creating..");
+					File.Create(TextChat.Config.GetString("tc_local_mute_path", $"{TextChat.pluginDir}/muted.txt"));
 				}
 			}
 			catch (Exception)
@@ -47,13 +46,13 @@ namespace TextChat
 			plugin.LocalMuted.Clear();
 
 			//Setup blocked user parsing
-			string[] blockedReadArray = File.ReadAllLines(plugin.BlockedPath);
+			string[] blockedReadArray = File.ReadAllLines(TextChat.Config.GetString("tc_blocked_path", $"{TextChat.pluginDir}/blocked.txt"));
 			foreach (string s in blockedReadArray)
 			{
 				string[] blockedParse = s.Split(new[] {":"}, StringSplitOptions.None);
 				if (!int.TryParse(blockedParse[1], out int result))
 				{
-					plugin.Error($"Invalid duration counter for {blockedParse[0]}");
+					Log.Error($"Invalid duration counter for {blockedParse[0]}");
 					continue;
 				}
 
@@ -66,7 +65,7 @@ namespace TextChat
 			}
 			
 			//setup locally muted user parsing
-			string[] mutedReadArray = File.ReadAllLines(plugin.LocalMutePath);
+			string[] mutedReadArray = File.ReadAllLines(TextChat.Config.GetString("tc_local_mute_path", $"{TextChat.pluginDir}/muted.txt"));
 			foreach (string s in mutedReadArray)
 			{
 				string[] mutedParse = s.Split(new[] {":"}, StringSplitOptions.None);
@@ -75,20 +74,20 @@ namespace TextChat
 			}
 		}
 
-		public void OnRoundStart(RoundStartEvent ev)
+		public void OnRoundStart()
 		{
 			foreach (string blocked in plugin.Blocked.Keys)
 				plugin.Blocked[blocked]--;
 		}
 
-		public void OnRoundEnd(RoundEndEvent ev)
+		public void OnRoundEnd()
 		{
 			plugin.IntercomArea = null;
 			foreach (CoroutineHandle handle in plugin.Coroutines)
 				Timing.KillCoroutines(handle);
 			
 			List<string>blockedWritelist = plugin.Blocked.Keys.Where(blocked => plugin.Blocked[blocked] != 0).Select(blocked => $"{blocked}:{plugin.Blocked[blocked]}").ToList();
-			File.WriteAllLines(plugin.BlockedPath, blockedWritelist);
+			File.WriteAllLines(TextChat.Config.GetString("tc_blocked_path", $"{TextChat.pluginDir}/blocked.txt"), blockedWritelist);
 			
 			List<string> mutedWriteList = new List<string>();
 			foreach (string key in plugin.LocalMuted.Keys)
@@ -99,10 +98,10 @@ namespace TextChat
 				mutedWriteList.Add($"{key}:{muted}");
 			}
 			
-			File.WriteAllLines(plugin.LocalMutePath, mutedWriteList);
+			File.WriteAllLines(TextChat.Config.GetString("tc_local_mute_path", $"{TextChat.pluginDir}/muted.txt"), mutedWriteList);
 		}
 
-		public void OnCallCommand(PlayerCallCommandEvent ev)
+		public void OnCallCommand(ConsoleCommandEvent ev)
 		{
 			if (!ev.Command.StartsWith("chat") && !ev.Command.StartsWith("mute") && !ev.Command.StartsWith("unmute")) 
 				return;
@@ -116,22 +115,21 @@ namespace TextChat
 					return;
 				}
 
-				List<Player> players = plugin.Server.GetPlayers(args[1]);
-				if (players == null || players.Count == 0)
+				ReferenceHub playert = Player.GetPlayer(args[1]);
+				if (playert == null)
 				{
 					ev.ReturnMessage = "Player not found.";
 					return;
 				}
 
-				Player player = players.OrderBy(ply => ply.Name.Length).First();
-				if (plugin.LocalMuted[ev.Player.SteamId].Contains(player.SteamId))
+				if (plugin.LocalMuted[ev.Player.characterClassManager.UserId].Contains(playert.characterClassManager.UserId))
 				{
 					ev.ReturnMessage = "That player is already muted.";
 					return;
 				}
 				
-				plugin.LocalMuted[ev.Player.SteamId].Add(player.SteamId);
-				ev.ReturnMessage = $"{player.Name} has been muted. You will no longer see messages from this person.";
+				plugin.LocalMuted[ev.Player.characterClassManager.UserId].Add(playert.characterClassManager.UserId);
+				ev.ReturnMessage = $"{playert.nicknameSync.MyNick} has been muted. You will no longer see messages from this person.";
 				return;
 			}
 			
@@ -144,42 +142,41 @@ namespace TextChat
 					return;
 				}
 
-				List<Player> players = plugin.Server.GetPlayers(args[1]);
-				if (players == null || players.Count == 0)
+				ReferenceHub player = Player.GetPlayer(args[1]);
+				if (player == null)
 				{
 					ev.ReturnMessage = "Player not found.";
 					return;
 				}
 
-				Player player = players.OrderBy(ply => ply.Name.Length).First();
-				if (!plugin.LocalMuted[ev.Player.SteamId].Contains(player.SteamId))
+				if (!plugin.LocalMuted[ev.Player.characterClassManager.UserId].Contains(player.characterClassManager.UserId))
 				{
 					ev.ReturnMessage = "That player is not muted.";
 					return;
 				}
 				
-				plugin.LocalMuted[ev.Player.SteamId].Remove(player.SteamId);
-				ev.ReturnMessage = $"{player.Name} has been unmuted. You will now see messages from this person.";
+				plugin.LocalMuted[ev.Player.characterClassManager.UserId].Remove(player.characterClassManager.UserId);
+				ev.ReturnMessage = $"{player.nicknameSync.MyNick} has been unmuted. You will now see messages from this person.";
 				return;
 			}
 
 			if (!Methods.IntercomOverride(ev.Player))
 			{
-				if (plugin.Cooldown.Contains(ev.Player.PlayerId))
+				if (plugin.Cooldown.Contains(ev.Player.queryProcessor.PlayerId))
 				{
 					ev.ReturnMessage =
-						$"Your message was not sent, please send messages no less than {plugin.CooldownTime} seconds apart.";
+						$"Your message was not sent, please send messages no less than {TextChat.Config.GetFloat("tc_cooldown_time", 1.5f)} seconds apart.";
 					return;
 				}
 
 				if (!plugin.Functions.CanSend(ev.Player))
 				{
 					ev.ReturnMessage = "You cannot send messages because you have been muted by staff.";
-					plugin.Server.Map.SetIntercomSpeaker(ev.Player);
+					PlayerManager.localPlayer.GetComponent<Intercom>().Networkspeaker = ev.Player.gameObject;
 					return;
 				}
 
-				if (plugin.Functions.CheckIntercomRange(ev.Player) && !Intercom.host.speaking && plugin.IntercomSendAll) 
+				if (plugin.Functions.CheckIntercomRange(ev.Player) && !Intercom.host.speaking && TextChat.Config.GetBool("tc_intercom_send_all", true)) 
 					Methods.SetIntercomSpeaker(ev.Player);
 			}
 
@@ -189,23 +186,23 @@ namespace TextChat
 				return;
 			}
 			
-			foreach (Player player in plugin.Server.GetPlayers())
-				if (!plugin.LocalMuted[player.SteamId].Contains(ev.Player.SteamId))
+			foreach (ReferenceHub player in Player.GetHubs())
+				if (!plugin.LocalMuted[player.characterClassManager.UserId].Contains(ev.Player.characterClassManager.UserId))
 					if (plugin.Functions.CanSee(player, ev.Player))
-						if (plugin.AreaChat && plugin.Functions.InRange(player, ev.Player))
+						if (TextChat.Config.GetBool("tc_area_chat", false) && plugin.Functions.InRange(player, ev.Player))
 							plugin.Functions.SendMessage(ev.Player, player, ev.Command.Replace("chat ",""));
-						else if (!plugin.AreaChat)
+						else if (!TextChat.Config.GetBool("tc_area_chat", false))
 							plugin.Functions.SendMessage(ev.Player, player, ev.Command.Replace("chat ",""));
 			
-			plugin.Cooldown.Add(ev.Player.PlayerId);
+			plugin.Cooldown.Add(ev.Player.queryProcessor.PlayerId);
 			plugin.Coroutines.Add(Timing.RunCoroutine(plugin.Functions.RemoveCooldown(ev.Player)));
 			ev.ReturnMessage = "";
 		}
 
 		public void OnPlayerJoin(PlayerJoinEvent ev)
 		{
-			if (!plugin.LocalMuted.ContainsKey(ev.Player.SteamId))
-				plugin.LocalMuted.Add(ev.Player.SteamId, new List<string>());
+			if (!plugin.LocalMuted.ContainsKey(ev.Player.characterClassManager.UserId))
+				plugin.LocalMuted.Add(ev.Player.characterClassManager.UserId, new List<string>());
 		}
 	}
 }
