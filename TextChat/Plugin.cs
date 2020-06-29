@@ -22,6 +22,7 @@ namespace TextChat
 
 		public List<int> Cooldown = new List<int>();
 		public Dictionary<string, int> Blocked = new Dictionary<string, int>();
+		public Dictionary<string, bool> Hints = new Dictionary<string, bool>();
 		public Dictionary<string, List<string>> LocalMuted = new Dictionary<string, List<string>>();
 		public List<CoroutineHandle> Coroutines = new List<CoroutineHandle>();
 		public Transform IntercomArea = null;
@@ -40,7 +41,7 @@ namespace TextChat
 			if (!Directory.Exists(pluginDir))
 				Directory.CreateDirectory(pluginDir);
 			Log.Info($"TextChat - enabled.");
-			Log.Info($"BlockedPath: {Config.GetString("tc_blocked_path", $"{TextChat.pluginDir}/blocked.txt")}\nLocalPath: {Config.GetString("tc_local_mute_path", $"{TextChat.pluginDir}/muted.txt")}");
+			Log.Info($"BlockedPath: {Config.GetString("tc_blocked_path", $"{TextChat.pluginDir}/blocked.txt")}\nLocalPath: {Config.GetString("tc_local_mute_path", $"{TextChat.pluginDir}/muted.txt")}\nHintsPath: {Config.GetString("tc_local_hints_path", $"{TextChat.pluginDir}/hints.txt")}");
 			Events.RemoteAdminCommandEvent += commands.RemoteAdminCommandEvent;
 			Events.WaitingForPlayersEvent += handlers.OnWaitingForPlayers;
 			Events.RoundStartEvent += handlers.OnRoundStart;

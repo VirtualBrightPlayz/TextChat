@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Hints;
 using MEC;
 using UnityEngine;
 
@@ -41,7 +42,38 @@ namespace TextChat
 
 		public void SendMessage(ReferenceHub source, ReferenceHub target, string message)
 		{
-			target.characterClassManager.TargetConsolePrint(target.characterClassManager.connectionToClient, $"[{DateTime.Now}] {source.nicknameSync.MyNick}: {message}", "green");
+			string data = TextChat.Config.GetString("tc_hint_msg_data", "<size=100%><color=blue>%name%: </color>%message%</size><br><size=50%><color=yellow>Open the console (~) for more</color></size>");
+			string no = "[Hidden]";
+			if (plugin.Hints.ContainsKey(target.characterClassManager.UserId))
+			{
+				if (plugin.Hints[target.characterClassManager.UserId])
+				{
+					data = data.Replace("%message%", $"{message.Replace("/>", "").Substring(0, Mathf.Min(TextChat.Config.GetInt("tc_max_chars", 60), message.Length))}");
+				}
+				else
+				{
+					data = data.Replace("%message%", $"{TextChat.Config.GetString("tc_hint_no", no)}");
+				}
+			}
+			else
+			{
+				if (TextChat.Config.GetBool("tc_hint_msg_default", true))
+				{
+					data = data.Replace("%message%", $"{message.Replace("/>", "").Substring(0, Mathf.Min(TextChat.Config.GetInt("tc_max_chars", 60), message.Length))}");
+				}
+				else
+				{
+					data = data.Replace("%message%", $"{TextChat.Config.GetString("tc_hint_no", no)}");
+				}
+			}
+			if (TextChat.Config.GetBool("tc_hint_enable", true))
+			{
+				target.hints.Show(new TextHint(data.Replace("%name%", $"{source.nicknameSync.MyNick}"), new HintParameter[] { new StringHintParameter("") }, new HintEffect[]
+				{
+				HintEffectPresets.TrailingPulseAlpha(0.5f, 1f, 0.5f, 2f, 0f, 3)
+				}, 5f));
+			}
+			target.characterClassManager.TargetConsolePrint(target.characterClassManager.connectionToClient, $"[{DateTime.Now}] {source.nicknameSync.MyNick}: {message.Replace("/>", "").Substring(0, Mathf.Min(TextChat.Config.GetInt("tc_max_chars", 60), message.Length))}", "green");
 		}
 
 		public bool CanSend(ReferenceHub source) => !plugin.Blocked.ContainsKey(source.characterClassManager.UserId) || plugin.Cooldown.Contains(source.queryProcessor.PlayerId);
@@ -131,7 +163,7 @@ namespace TextChat
 						switch (targetTeam)
 						{
 							case Team.SCP when TextChat.Config.GetBool("tc_scp_cansee_mtf", true):
-							case Team.CHI when TextChat.Config.GetBool("tc_Chi_cansee_mtf", true):
+							case Team.CHI when TextChat.Config.GetBool("tc_chi_cansee_mtf", true):
 							case Team.CDP when TextChat.Config.GetBool("tc_chi_cansee_mtf", true):
 							case Team.RIP when TextChat.Config.GetBool("tc_rip_cansee_mtf", true):
 							case Team.TUT when TextChat.Config.GetBool("tc_tut_cansee_mtf", true):

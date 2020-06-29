@@ -35,6 +35,12 @@ namespace TextChat
 					Log.Info("Muted users file not found, creating..");
 					File.Create(TextChat.Config.GetString("tc_local_mute_path", $"{TextChat.pluginDir}/muted.txt"));
 				}
+
+				if (!File.Exists(TextChat.Config.GetString("tc_local_hints_path", $"{TextChat.pluginDir}/hints.txt")))
+				{
+					Log.Info("Hinted users file not found, creating..");
+					File.Create(TextChat.Config.GetString("tc_local_hints_path", $"{TextChat.pluginDir}/hints.txt"));
+				}
 			}
 			catch (Exception)
 			{
@@ -72,6 +78,14 @@ namespace TextChat
 				if (!plugin.LocalMuted.ContainsKey(mutedParse[0]))
 					plugin.LocalMuted.Add(mutedParse[0], mutedParse[1].Split(new []{"."}, StringSplitOptions.None).ToList());
 			}
+
+			//setup hints
+			string[] hintArray = File.ReadAllLines(TextChat.Config.GetString("tc_local_hints_path", $"{TextChat.pluginDir}/hints.txt"));
+			foreach (var item in hintArray)
+			{
+				if (!plugin.Hints.ContainsKey(item))
+					plugin.Hints.Add(item, false);
+			}
 		}
 
 		public void OnRoundStart()
@@ -99,6 +113,10 @@ namespace TextChat
 			}
 			
 			File.WriteAllLines(TextChat.Config.GetString("tc_local_mute_path", $"{TextChat.pluginDir}/muted.txt"), mutedWriteList);
+
+			List<string> HintsWriteList = plugin.Hints.Keys.Where(hint => !plugin.Hints[hint]).ToList();
+			File.WriteAllLines(TextChat.Config.GetString("tc_local_hints_path", $"{TextChat.pluginDir}/hints.txt"), HintsWriteList);
+
 		}
 
 		public void OnCallCommand(ConsoleCommandEvent ev)
@@ -157,6 +175,17 @@ namespace TextChat
 				
 				plugin.LocalMuted[ev.Player.characterClassManager.UserId].Remove(player.characterClassManager.UserId);
 				ev.ReturnMessage = $"{player.nicknameSync.MyNick} has been unmuted. You will now see messages from this person.";
+				return;
+			}
+
+			if (ev.Command.StartsWith("chathints"))
+			{
+				if (!plugin.Hints.ContainsKey(ev.Player.characterClassManager.UserId))
+				{
+					plugin.Hints.Add(ev.Player.characterClassManager.UserId, true);
+				}
+				plugin.Hints[ev.Player.characterClassManager.UserId] = !plugin.Hints[ev.Player.characterClassManager.UserId];
+				ev.ReturnMessage = $"Message hints are now set to {plugin.Hints[ev.Player.characterClassManager.UserId]}.";
 				return;
 			}
 

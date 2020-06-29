@@ -1,6 +1,9 @@
 TextChat
 ======
 made by Joker 119
+Modded for SCPSL 10.0.0 by VirtualBrightPlayz
+
+
 ## Description
 Adds text-based chat into SCP:SL via the player console.
 
@@ -10,6 +13,7 @@ Adds text-based chat into SCP:SL via the player console.
  - Configuration to determine what teams see messages from what other teams.
  - Area-based text chat options.
  - Persistant blocks and mutes through server restarts.
+ - Chat hints at the bottom of the screen.
 
 ### Config Settings
 Config option | Config Type | Default Value | Description
@@ -24,6 +28,10 @@ tc_admin_bypass | Bool | true | Whether or not staff should bypass all team and 
 tc_admin_badges | String List(array) | Empty | If badge names are supplied here, only those badges will recieve admin_bypass, instead of all those with RA access.
 tc_cooldown_time | Float | 1.5f | The cooldown time incured on a player between being able to send messages. (to prevent spam)
 tc_intercom_send_all | Bool | true | Allows a user to use the intercom for a single server-wide message. Does not bypass intercom cooldown, requires they be in normal activation range of the Intercom to use.
+tc_hint_enable | Bool | true | Should any sort of chat hints be enabled.
+tc_hint_msg_default | Bool | true | Should messages in the hints be enabled by default.
+tc_hint_no | String | `[Hidden]` | The text to replace messages in the hints.
+
 
 ### Teams
   Name | | | Who is in that team
@@ -48,3 +56,4 @@ unblock | PlayerID | ~~ | Unblocs the user.
 .chat | message | | Sends a chat message to other players' consoles.
 .mute | PlayerName | | Locally mutes the players, preventing you from seeing that persons messages.
 .unmute | PlayerName | | Unmutes the player locally (blocks still apply)
+.chathints | none | | Toggles messages in chat hints
